@@ -9,7 +9,7 @@ pygame-ce = "*"
 [dev-packages]
 
 [scripts]
-start = "python ./src/main.py"
+start = "python -m src.main"
 
 [requires]
 python_version = "3.13"
