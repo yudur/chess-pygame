@@ -2,9 +2,6 @@ import pygame
 from src.chess.board import Board
 from src.utils import settings
 
-LIGHT = (240, 217, 181)
-DARK = (181, 136, 99)
-
 
 class BoardRenderer:
     def __init__(self, board: Board):
@@ -13,7 +10,11 @@ class BoardRenderer:
     def draw(self, screen: pygame.Surface):
         for row in range(8):
             for col in range(8):
-                color = LIGHT if (row + col) % 2 == 0 else DARK
+                color = (
+                    settings.BOARD_LIGHT_COLOR
+                    if (row + col) % 2 == 0
+                    else settings.BOARD_DARK_COLOR
+                )
                 rect = pygame.Rect(
                     col * settings.TILESIZE + settings.START_GRID_BOARD_POS[0],
                     row * settings.TILESIZE + settings.START_GRID_BOARD_POS[1],

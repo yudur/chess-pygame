@@ -1,4 +1,9 @@
 from src.chess.pieces.pawn import Pawn
+from src.chess.pieces.queen import Queen
+from src.chess.pieces.rook import Rook
+from src.chess.pieces.bishop import Bishop
+from src.chess.pieces.knight import Knight
+
 from src.chess.board import Board
 
 
@@ -11,6 +16,9 @@ class GameLogic:
         self.last_move = None  # (piece, from_row, from_col, to_row, to_col)
         self.game_over = False
         self.result: tuple[str, str] | None = None  # (reason, winner)
+        # Promotion state: when not None, the game waits for the UI to choose a piece
+        # (color, row, col)
+        self.pending_promotion: tuple[str, int, int] | None = None
 
     def select_square(self, row, col):
         piece = self.board.get_piece(row, col)
@@ -74,6 +82,12 @@ class GameLogic:
         self.board.remove_piece(from_row, from_col)
         self.board.place_piece(piece, row, col)
 
+        # Pawn promotion: if a pawn reaches the last rank, mark pending promotion
+        if isinstance(piece, Pawn):
+            last_rank = 0 if piece.color == "white" else 7
+            if row == last_rank:
+                self.pending_promotion = (piece.color, row, col)
+
         # Castling: if king moved two files horizontally, move the rook as well
         if piece.kind == "king" and abs(col - from_col) == 2:
             rook_row = row
@@ -92,6 +106,51 @@ class GameLogic:
         piece.has_moved = True
 
         self.last_move = (piece, from_row, from_col, row, col)
+        # Do not advance turn or check mate/stalemate if waiting for promotion choice
+        if self.pending_promotion is not None:
+            return
+
+        self.current_turn = "black" if self.current_turn == "white" else "white"
+
+        if self.is_checkmate(self.current_turn):
+            self.game_over = True
+            winner = "black" if self.current_turn == "white" else "white"
+            self.result = ("checkmate", winner)
+        elif self.is_stalemate(self.current_turn):
+            self.game_over = True
+            self.result = ("stalemate", self.current_turn)
+
+    def promote_pawn(self, new_piece_kind: str):
+        """Replace the pawn at pending_promotion with a new piece of the given kind.
+
+        new_piece_kind should be one of: "queen", "rook", "bishop", "knight".
+        """
+
+        if self.pending_promotion is None:
+            return
+
+        color, row, col = self.pending_promotion
+
+        # Remove the pawn and create the new piece
+        self.board.remove_piece(row, col)
+
+        if new_piece_kind == "queen":
+            new_piece = Queen(color)
+        elif new_piece_kind == "rook":
+            new_piece = Rook(color)
+        elif new_piece_kind == "bishop":
+            new_piece = Bishop(color)
+        elif new_piece_kind == "knight":
+            new_piece = Knight(color)
+        else:
+            # Fallback: promote to queen if unknown kind
+            new_piece = Queen(color)
+
+        self.board.place_piece(new_piece, row, col)
+
+        # Clear promotion state and continue the game
+        self.pending_promotion = None
+
         self.current_turn = "black" if self.current_turn == "white" else "white"
 
         if self.is_checkmate(self.current_turn):

@@ -10,5 +10,9 @@ START_GRID_BOARD_POS = (60, 60)
 
 BACKGROUND_COLOR_RGB = (48, 46, 43)
 
+# Board theme colors
+BOARD_LIGHT_COLOR = (240, 217, 181)
+BOARD_DARK_COLOR = (181, 136, 99)
+
 ASSETS_PATH = Path(__file__).parent.parent.parent / "assets"
 PIECES_PATH = ASSETS_PATH / "images" / "pieces"

@@ -4,6 +4,7 @@ from src.core.state import State
 
 from src.ui.board_renderer import BoardRenderer
 from src.ui.piece_renderer import PieceRenderer
+from src.ui.modal_upgrade_pawn_renderer import ModalUpgradePawnRenderer
 from src.utils import settings
 
 
@@ -14,6 +15,7 @@ class GameState(State):
 
         self.board_renderer = BoardRenderer(self.logic.board)
         self.piece_renderer = PieceRenderer()
+        self.promotion_modal = ModalUpgradePawnRenderer(None, None)
 
         self.dragging = False
         self.drag_piece = None
@@ -27,6 +29,16 @@ class GameState(State):
         print("exitting Game State")
 
     def handle_event(self, event):
+        # If there is a pending promotion, only handle clicks for the promotion modal
+        if self.logic.pending_promotion is not None:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                choice = self.promotion_modal.handle_click(x, y)
+                if choice is not None:
+                    # choice is one of: "queen", "rook", "bishop", "knight"
+                    self.logic.promote_pawn(choice)
+            return
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
             row, col = (
@@ -98,3 +110,11 @@ class GameState(State):
         if dragging_piece is not None:
             mx, my = self.mouse_pos
             self.piece_renderer.draw_at(screen, dragging_piece, (mx, my))
+
+        # Draw promotion modal if a pawn is waiting to be promoted
+        if self.logic.pending_promotion is not None:
+            # Ensure modal has the correct screen and color
+            self.promotion_modal.screen = screen
+            color, _, _ = self.logic.pending_promotion
+            self.promotion_modal.color = color
+            self.promotion_modal.render()
