@@ -26,12 +26,14 @@ class GameState(State):
             x, y = event.pos
             row, col = y // settings.TILESIZE, x // settings.TILESIZE
 
-            print(f"Clicked on square: ({row}, {col})")
+            # print(f"Clicked on square: ({row}, {col})")
 
             self.logic.select_square(row, col)
 
     def update(self, dt):
-        pass
+        if self.logic.game_over:
+            print(f"Game Over: {self.logic.result[0]} - {self.logic.result[1]}")
+            # Here you could transition to a GameOverState or reset the game
 
     def render(self, screen):
         self.board_renderer.draw(screen)

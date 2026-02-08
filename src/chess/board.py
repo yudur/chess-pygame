@@ -1,3 +1,4 @@
+import copy
 from src.chess.pieces.knight import Knight
 from src.chess.pieces.bishop import Bishop
 from src.chess.pieces.rook import Rook
@@ -54,3 +55,14 @@ class Board:
 
     def is_inside(self, row, col):
         return 0 <= row < 8 and 0 <= col < 8
+
+    def find_king(self, color):
+        for row in range(8):
+            for col in range(8):
+                piece = self.get_piece(row, col)
+                if piece and piece.kind == "king" and piece.color == color:
+                    return (row, col)
+        return None
+
+    def clone(self):
+        return copy.deepcopy(self)
