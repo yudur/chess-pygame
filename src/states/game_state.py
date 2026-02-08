@@ -1,9 +1,17 @@
+from src.chess.game_logic import GameLogic
 from src.core.state import State
+
+from src.ui.board_renderer import BoardRenderer
+from src.ui.piece_renderer import PieceRenderer
 
 
 class GameState(State):
     def __init__(self, manager):
         self.manager = manager
+        self.logic = GameLogic()
+
+        self.board_renderer = BoardRenderer(self.logic.board)
+        self.piece_renderer = PieceRenderer()
 
     def enter(self):
         print("Entering Game State")
@@ -18,4 +26,10 @@ class GameState(State):
         pass
 
     def render(self, screen):
-        screen.fill((30, 30, 30))
+        self.board_renderer.draw(screen)
+
+        for row in range(8):
+            for col in range(8):
+                piece = self.logic.board.get_piece(row, col)
+                if piece:
+                    self.piece_renderer.draw(screen, piece)
