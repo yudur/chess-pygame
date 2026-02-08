@@ -26,6 +26,7 @@ class GameApp:
                 self.state_manager.handle_event(event)
 
             self.state_manager.update(dt)
+            self.screen.fill(settings.BACKGROUND_COLOR_RGB)
             self.state_manager.render(self.screen)
             pygame.display.flip()
         pygame.quit()

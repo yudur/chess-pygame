@@ -15,9 +15,24 @@ class PieceRenderer:
     def draw(self, screen: pygame.Surface, piece: Piece):
         row, col = piece.position
         center = (
-            col * settings.TILESIZE + settings.TILESIZE // 2,
-            row * settings.TILESIZE + settings.TILESIZE // 2,
+            col * settings.TILESIZE
+            + settings.TILESIZE // 2
+            + settings.START_GRID_BOARD_POS[0],
+            row * settings.TILESIZE
+            + settings.TILESIZE // 2
+            + settings.START_GRID_BOARD_POS[1],
         )
+
+        self.img = pygame.image.load(
+            f"{settings.PIECES_PATH / COLORS[piece.color]}{piece.kind.title()}.png"
+        ).convert_alpha()
+        self.img = pygame.transform.smoothscale(
+            self.img, (settings.TILESIZE, settings.TILESIZE)
+        )
+        screen.blit(self.img, self.img.get_rect(center=center))
+
+    def draw_at(self, screen: pygame.Surface, piece: Piece, center: tuple[int, int]):
+        """Draw the given piece centered at an arbitrary pixel position (used for drag-and-drop)."""
 
         self.img = pygame.image.load(
             f"{settings.PIECES_PATH / COLORS[piece.color]}{piece.kind.title()}.png"

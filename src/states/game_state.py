@@ -15,20 +15,64 @@ class GameState(State):
         self.board_renderer = BoardRenderer(self.logic.board)
         self.piece_renderer = PieceRenderer()
 
+        self.dragging = False
+        self.drag_piece = None
+        self.drag_origin = None  # (row, col)
+        self.mouse_pos = (0, 0)
+
     def enter(self):
         print("Entering Game State")
 
     def exit(self):
-        print("Exiting Game State")
+        print("exitting Game State")
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
-            row, col = y // settings.TILESIZE, x // settings.TILESIZE
+            row, col = (
+                (y - settings.START_GRID_BOARD_POS[1]) // settings.TILESIZE,
+                (x - settings.START_GRID_BOARD_POS[0]) // settings.TILESIZE,
+            )
 
-            # print(f"Clicked on square: ({row}, {col})")
+            if 0 <= row < 8 and 0 <= col < 8:
+                piece = self.logic.board.get_piece(row, col)
 
-            self.logic.select_square(row, col)
+                # Start drag if clicking on a piece of the side to move
+                if piece and piece.color == self.logic.current_turn:
+                    self.dragging = True
+                    self.drag_piece = piece
+                    self.drag_origin = (row, col)
+                    self.mouse_pos = event.pos
+
+                    # Also let the logic compute valid moves for this piece
+                    self.logic.select_square(row, col)
+                else:
+                    # Clicked an empty square or enemy piece: delegate to logic (may clear selection)
+                    self.logic.select_square(row, col)
+
+        elif event.type == pygame.MOUSEMOTION:
+            if self.dragging:
+                self.mouse_pos = event.pos
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if self.dragging:
+                x, y = event.pos
+                row, col = (
+                    (y - settings.START_GRID_BOARD_POS[1]) // settings.TILESIZE,
+                    (x - settings.START_GRID_BOARD_POS[0]) // settings.TILESIZE,
+                )
+
+                if 0 <= row < 8 and 0 <= col < 8:
+                    # Drop on a board square: let GameLogic decide if it's a valid move
+                    self.logic.select_square(row, col)
+                else:
+                    # Dropped outside the board: cancel selection
+                    self.logic.selected_piece = None
+                    self.logic.valid_moves = []
+
+                self.dragging = False
+                self.drag_piece = None
+                self.drag_origin = None
 
     def update(self, dt):
         if self.logic.game_over:
@@ -39,8 +83,18 @@ class GameState(State):
         self.board_renderer.draw(screen)
         self.board_renderer.draw_highlights(screen, self.logic.valid_moves)
 
+        dragging_piece = self.drag_piece if self.dragging else None
+
         for row in range(8):
             for col in range(8):
                 piece = self.logic.board.get_piece(row, col)
                 if piece:
+                    # When dragging, don't draw the piece at its board square
+                    if dragging_piece is not None and piece is dragging_piece:
+                        continue
                     self.piece_renderer.draw(screen, piece)
+
+        # Draw the dragged piece following the mouse cursor, if any
+        if dragging_piece is not None:
+            mx, my = self.mouse_pos
+            self.piece_renderer.draw_at(screen, dragging_piece, (mx, my))
