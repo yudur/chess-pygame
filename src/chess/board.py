@@ -1,4 +1,9 @@
-from src.chess.piece import Piece
+from src.chess.pieces.knight import Knight
+from src.chess.pieces.bishop import Bishop
+from src.chess.pieces.rook import Rook
+from src.chess.pieces.pawn import Pawn
+from src.chess.pieces.queen import Queen
+from src.chess.pieces.king import King
 
 
 class Board:
@@ -10,28 +15,28 @@ class Board:
     def setup_initial_position(self):
         # Pawns
         for col in range(8):
-            self.place_piece(Piece("black", "pawn"), 1, col)
-            self.place_piece(Piece("white", "pawn"), 6, col)
+            self.place_piece(Pawn("black"), 1, col)
+            self.place_piece(Pawn("white"), 6, col)
 
         # black (line 0)
-        self.place_piece(Piece("black", "rook"), 0, 0)
-        self.place_piece(Piece("black", "rook"), 0, 7)
-        self.place_piece(Piece("black", "knight"), 0, 1)
-        self.place_piece(Piece("black", "knight"), 0, 6)
-        self.place_piece(Piece("black", "bishop"), 0, 2)
-        self.place_piece(Piece("black", "bishop"), 0, 5)
-        self.place_piece(Piece("black", "queen"), 0, 3)
-        self.place_piece(Piece("black", "king"), 0, 4)
+        self.place_piece(Rook("black"), 0, 0)
+        self.place_piece(Rook("black"), 0, 7)
+        self.place_piece(Knight("black"), 0, 1)
+        self.place_piece(Knight("black"), 0, 6)
+        self.place_piece(Bishop("black"), 0, 2)
+        self.place_piece(Bishop("black"), 0, 5)
+        self.place_piece(Queen("black"), 0, 3)
+        self.place_piece(King("black"), 0, 4)
 
         # white (line 7)
-        self.place_piece(Piece("white", "rook"), 7, 0)
-        self.place_piece(Piece("white", "rook"), 7, 7)
-        self.place_piece(Piece("white", "knight"), 7, 1)
-        self.place_piece(Piece("white", "knight"), 7, 6)
-        self.place_piece(Piece("white", "bishop"), 7, 2)
-        self.place_piece(Piece("white", "bishop"), 7, 5)
-        self.place_piece(Piece("white", "queen"), 7, 3)
-        self.place_piece(Piece("white", "king"), 7, 4)
+        self.place_piece(Rook("white"), 7, 0)
+        self.place_piece(Rook("white"), 7, 7)
+        self.place_piece(Knight("white"), 7, 1)
+        self.place_piece(Knight("white"), 7, 6)
+        self.place_piece(Bishop("white"), 7, 2)
+        self.place_piece(Bishop("white"), 7, 5)
+        self.place_piece(Queen("white"), 7, 3)
+        self.place_piece(King("white"), 7, 4)
 
     def place_piece(self, piece, row, col):
         self.board[row][col] = piece
@@ -39,3 +44,13 @@ class Board:
 
     def get_piece(self, row, col):
         return self.board[row][col]
+
+    def remove_piece(self, row, col):
+        self.board[row][col] = None
+        return
+
+    def is_empty(self, row, col):
+        return self.is_inside(row, col) and self.board[row][col] is None
+
+    def is_inside(self, row, col):
+        return 0 <= row < 8 and 0 <= col < 8

@@ -3,6 +3,7 @@ class Piece:
         self.color = color
         self.kind = kind  # "pawn" | "rook" | "knight" | "bishop" | "queen" | "king"
         self.position: tuple[int, int] | None = None
+        self.direction = -1 if self.color == "white" else 1
 
     def valid_moves(self, board) -> list[tuple[int, int]]:
         pass

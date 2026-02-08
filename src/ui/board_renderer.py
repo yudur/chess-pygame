@@ -1,7 +1,7 @@
 import pygame
 from src.chess.board import Board
+from src.utils import settings
 
-SQUARE_SIZE = 96
 LIGHT = (240, 217, 181)
 DARK = (181, 136, 99)
 
@@ -15,6 +15,14 @@ class BoardRenderer:
             for col in range(8):
                 color = LIGHT if (row + col) % 2 == 0 else DARK
                 rect = pygame.Rect(
-                    col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE
+                    col * settings.TILESIZE,
+                    row * settings.TILESIZE,
+                    settings.TILESIZE,
+                    settings.TILESIZE,
                 )
                 pygame.draw.rect(screen, color, rect)
+
+    def draw_highlights(self, screen: pygame.Surface, moves):
+        for row, col in moves:
+            rect = pygame.Rect(col * 96, row * 96, 96, 96)
+            pygame.draw.rect(screen, (0, 255, 0), rect, 4)

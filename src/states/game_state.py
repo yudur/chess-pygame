@@ -1,8 +1,10 @@
+import pygame
 from src.chess.game_logic import GameLogic
 from src.core.state import State
 
 from src.ui.board_renderer import BoardRenderer
 from src.ui.piece_renderer import PieceRenderer
+from src.utils import settings
 
 
 class GameState(State):
@@ -20,13 +22,20 @@ class GameState(State):
         print("Exiting Game State")
 
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            x, y = event.pos
+            row, col = y // settings.TILESIZE, x // settings.TILESIZE
+
+            print(f"Clicked on square: ({row}, {col})")
+
+            self.logic.select_square(row, col)
 
     def update(self, dt):
         pass
 
     def render(self, screen):
         self.board_renderer.draw(screen)
+        self.board_renderer.draw_highlights(screen, self.logic.valid_moves)
 
         for row in range(8):
             for col in range(8):
