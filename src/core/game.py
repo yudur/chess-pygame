@@ -9,6 +9,8 @@ from src.utils import settings
 class GameApp:
     def __init__(self):
         pygame.init()
+        settings.initialize_display_settings()
+
         self.screen = pygame.display.set_mode((settings.WIDTH, settings.HEIGHT))
         self.clock = pygame.time.Clock()
         self.running = True
