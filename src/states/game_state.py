@@ -54,7 +54,8 @@ class GameState(State):
             
             # Check if button was clicked
             if self.button_exit.is_clicked((x, y)):
-                print("exit game")
+                from src.states.home_state import HomeState
+                self.manager.change_state(HomeState(self.manager))  # Go back to home menu
                 return
 
             row, col = (
