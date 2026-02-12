@@ -9,11 +9,6 @@ class ModalUpgradePawnRenderer:
         # color of the promoting side ("white" or "black")
         self.color = color
 
-        self.COLORS = {
-            "white": "white/w_",
-            "black": "black/b_",
-        }
-
         # Layout configuration: 2x2 grid centered on the board
         self.grid_rows = 2
         self.grid_cols = 2
@@ -71,7 +66,7 @@ class ModalUpgradePawnRenderer:
 
                 # Draw piece option icon (queen, rook, bishop, knight)
                 kind = self.options_grid[row][col]
-                prefix = self.COLORS[color]
+                prefix = settings.PIECES_COLOR[color]
                 img_path = settings.PIECES_PATH / f"{prefix}{kind.title()}.png"
 
                 img = pygame.image.load(img_path).convert_alpha()

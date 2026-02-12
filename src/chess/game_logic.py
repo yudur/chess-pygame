@@ -118,7 +118,7 @@ class GameLogic:
             self.result = ("checkmate", winner)
         elif self.is_stalemate(self.current_turn):
             self.game_over = True
-            self.result = ("stalemate", self.current_turn)
+            self.result = ("stalemate", None)  # not have a winner in stalemate
 
     def promote_pawn(self, new_piece_kind: str):
         """Replace the pawn at pending_promotion with a new piece of the given kind.

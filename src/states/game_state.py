@@ -5,7 +5,11 @@ from src.core.state import State
 from src.ui.board_renderer import BoardRenderer
 from src.ui.piece_renderer import PieceRenderer
 from src.ui.modal_upgrade_pawn_renderer import ModalUpgradePawnRenderer
+from src.ui.button_renderer import ButtonRenderer
+from src.ui.overlay_game_over_notification_renderer import GameOverNotificationRenderer
+
 from src.utils import settings
+
 
 
 class GameState(State):
@@ -16,6 +20,12 @@ class GameState(State):
         self.board_renderer = BoardRenderer(self.logic.board)
         self.piece_renderer = PieceRenderer()
         self.promotion_modal = ModalUpgradePawnRenderer(None, None)
+        self.button_exit = ButtonRenderer(
+            pos=(settings.WIDTH - (settings.TILESIZE * 4 + settings.START_GRID_BOARD_POS[0]), settings.START_GRID_BOARD_POS[1]),
+            size=(settings.TILESIZE * 4, settings.TILESIZE),
+            text="Quit to Menu"
+        )
+        self.game_over_notification = GameOverNotificationRenderer(None)
 
         self.dragging = False
         self.drag_piece = None
@@ -41,6 +51,12 @@ class GameState(State):
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
+            
+            # Check if button was clicked
+            if self.button_exit.is_clicked((x, y)):
+                print("exit game")
+                return
+
             row, col = (
                 (y - settings.START_GRID_BOARD_POS[1]) // settings.TILESIZE,
                 (x - settings.START_GRID_BOARD_POS[0]) // settings.TILESIZE,
@@ -87,11 +103,11 @@ class GameState(State):
                 self.drag_origin = None
 
     def update(self, dt):
-        if self.logic.game_over:
-            print(f"Game Over: {self.logic.result[0]} - {self.logic.result[1]}")
-            # Here you could transition to a GameOverState or reset the game
+        self.button_exit.update(pygame.mouse.get_pos())
 
     def render(self, screen):
+        self.button_exit.draw(screen)
+
         self.board_renderer.draw(screen)
         self.board_renderer.draw_highlights(screen, self.logic.valid_moves)
 
@@ -118,3 +134,7 @@ class GameState(State):
             color, _, _ = self.logic.pending_promotion
             self.promotion_modal.color = color
             self.promotion_modal.render()
+
+        if self.logic.game_over:
+            self.game_over_notification.winner_color = self.logic.result[1]
+            self.game_over_notification.render(screen)
