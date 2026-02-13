@@ -19,6 +19,9 @@ class GameLogic:
         # Promotion state: when not None, the game waits for the UI to choose a piece
         # (color, row, col)
         self.pending_promotion: tuple[str, int, int] | None = None
+        # For draw detection
+        self.halfmove_clock = 0  # Fifty-move rule counter
+        self.position_history: list[str] = [self.board.get_position_hash()]  # For threefold repetition (starts with initial position)
 
     def select_square(self, row, col):
         piece = self.board.get_piece(row, col)
@@ -31,7 +34,7 @@ class GameLogic:
                 base_moves = piece.valid_moves(self.board)
 
                 # Filter out moves that would leave this side's king in check
-                self.valid_moves = self.get_legal_moves_for_moves(piece, base_moves)
+                self.valid_moves = self._get_legal_moves_for_moves(piece, base_moves)
 
                 # Castling: add king-side/queen-side castling squares if available
                 if piece.kind == "king":
@@ -55,19 +58,19 @@ class GameLogic:
                             ep_row, ep_col
                         ):
                             # It must also be a legal move (not leave our king in check)
-                            if (ep_row, ep_col) in self.get_legal_moves_for_moves(
+                            if (ep_row, ep_col) in self._get_legal_moves_for_moves(
                                 piece, [(ep_row, ep_col)]
                             ):
                                 self.valid_moves.append((ep_row, ep_col))
             return
 
         if (row, col) in self.valid_moves:
-            self.move_piece(self.selected_piece, row, col)
+            self._move_piece(self.selected_piece, row, col)
 
         self.selected_piece = None
         self.valid_moves = []
 
-    def move_piece(self, piece, row, col):
+    def _move_piece(self, piece, row, col):
         from_row, from_col = piece.position
         target = self.board.get_piece(row, col)
 
@@ -106,17 +109,40 @@ class GameLogic:
         piece.has_moved = True
 
         self.last_move = (piece, from_row, from_col, row, col)
+        
+        # Update halfmove clock for fifty-move rule
+        # Reset to 0 on pawn move or capture, otherwise increment
+        if isinstance(piece, Pawn) or target:
+            self.halfmove_clock = 0
+            # Also reset position history when capture/pawn move occurs (threefold repetition resets)
+            self.position_history = [self.board.get_position_hash()]
+        else:
+            self.halfmove_clock += 1
+        
         # Do not advance turn or check mate/stalemate if waiting for promotion choice
         if self.pending_promotion is not None:
             return
 
         self.current_turn = "black" if self.current_turn == "white" else "white"
+        
+        # Track position for threefold repetition (only if no reset above)
+        if self.halfmove_clock > 0:  # Only track if not in reset state
+            pos_hash = self.board.get_position_hash()
+            self.position_history.append(pos_hash)
+            
+            # Keep history limited to avoid memory bloat
+            # Only keep the last 100 positions (since fifty-move rule caps at 100 halfmoves anyway)
+            if len(self.position_history) > 200:
+                self.position_history = self.position_history[-200:]
 
-        if self.is_checkmate(self.current_turn):
+        if self._is_checkmate(self.current_turn):
             self.game_over = True
             winner = "black" if self.current_turn == "white" else "white"
             self.result = ("checkmate", winner)
-        elif self.is_stalemate(self.current_turn):
+        elif self._is_draw():
+            self.game_over = True
+            self.result = ("draw", None)
+        elif self._is_stalemate(self.current_turn):
             self.game_over = True
             self.result = ("stalemate", None)  # not have a winner in stalemate
 
@@ -152,16 +178,29 @@ class GameLogic:
         self.pending_promotion = None
 
         self.current_turn = "black" if self.current_turn == "white" else "white"
+        
+        # Track position for threefold repetition
+        # Note: pawn promotion counts like a pawn move for halfmove clock (already reset in _move_piece),
+        # so position_history was already reset
+        pos_hash = self.board.get_position_hash()
+        self.position_history.append(pos_hash)
+        
+        # Keep history limited to avoid memory bloat
+        if len(self.position_history) > 200:
+            self.position_history = self.position_history[-200:]
 
-        if self.is_checkmate(self.current_turn):
+        if self._is_checkmate(self.current_turn):
             self.game_over = True
             winner = "black" if self.current_turn == "white" else "white"
             self.result = ("checkmate", winner)
-        elif self.is_stalemate(self.current_turn):
+        elif self._is_draw():
             self.game_over = True
-            self.result = ("stalemate", self.current_turn)
+            self.result = ("draw", None)
+        elif self._is_stalemate(self.current_turn):
+            self.game_over = True
+            self.result = ("stalemate", None)  # not have a winner in stalemate
 
-    def is_square_attacked(self, board, target_row, target_col, by_color):
+    def _is_square_attacked(self, board, target_row, target_col, by_color):
         """Return True if (target_row, target_col) is attacked by any piece of by_color."""
 
         for r in range(8):
@@ -178,9 +217,9 @@ class GameLogic:
             return False  # King is missing, should not happen in a valid game
 
         enemy = "black" if color == "white" else "white"
-        return self.is_square_attacked(board, king_pos[0], king_pos[1], enemy)
+        return self._is_square_attacked(board, king_pos[0], king_pos[1], enemy)
 
-    def get_legal_moves_for_moves(self, piece, candidate_moves):
+    def _get_legal_moves_for_moves(self, piece, candidate_moves):
         """Filter candidate_moves, removing moves that leave the moving side's king in check."""
 
         legal_moves = []
@@ -218,7 +257,7 @@ class GameLogic:
             return []
 
         # King cannot currently be in check
-        if self.is_square_attacked(self.board, row, col, enemy):
+        if self._is_square_attacked(self.board, row, col, enemy):
             return []
 
         castles = []
@@ -233,9 +272,9 @@ class GameLogic:
             and self.board.is_empty(back_rank, 5)
             and self.board.is_empty(back_rank, 6)
         ):
-            if not self.is_square_attacked(
+            if not self._is_square_attacked(
                 self.board, back_rank, 5, enemy
-            ) and not self.is_square_attacked(self.board, back_rank, 6, enemy):
+            ) and not self._is_square_attacked(self.board, back_rank, 6, enemy):
                 castles.append((back_rank, 6))
 
         # Queen-side castling
@@ -249,9 +288,9 @@ class GameLogic:
             and self.board.is_empty(back_rank, 2)
             and self.board.is_empty(back_rank, 3)
         ):
-            if not self.is_square_attacked(
+            if not self._is_square_attacked(
                 self.board, back_rank, 3, enemy
-            ) and not self.is_square_attacked(self.board, back_rank, 2, enemy):
+            ) and not self._is_square_attacked(self.board, back_rank, 2, enemy):
                 castles.append((back_rank, 2))
 
         return castles
@@ -273,13 +312,13 @@ class GameLogic:
                 if not candidate_moves:
                     continue
 
-                legal_moves = self.get_legal_moves_for_moves(piece, candidate_moves)
+                legal_moves = self._get_legal_moves_for_moves(piece, candidate_moves)
                 if legal_moves:
                     return True
 
         return False
 
-    def is_checkmate(self, color: str) -> bool:
+    def _is_checkmate(self, color: str) -> bool:
         """Return True if `color` is in check and has no legal moves (checkmate)."""
 
         if not self._king_in_check_after(self.board, color):
@@ -287,10 +326,63 @@ class GameLogic:
 
         return not self._has_any_legal_move(color)
 
-    def is_stalemate(self, color: str) -> bool:
+    def _is_stalemate(self, color: str) -> bool:
         """Return True if `color` is not in check but has no legal moves (stalemate)."""
 
         if self._king_in_check_after(self.board, color):
             return False
 
         return not self._has_any_legal_move(color)
+
+    def _is_draw(self) -> bool:
+        """Return True if the game is a draw by any rule."""
+        
+        # Fifty-move rule: 50 full moves (100 halfmoves) without pawn move or capture
+        if self.halfmove_clock >= 100:
+            return True
+        
+        # Threefold repetition: same position appears 3 times
+        # Note: current position was already added to position_history before calling this method
+        if len(self.position_history) > 0:
+            current_pos = self.board.get_position_hash()
+            repetition_count = self.position_history.count(current_pos)  # Already includes current position
+            if repetition_count >= 3:
+                return True
+        
+        # Insufficient material: neither side can deliver checkmate
+        if self._has_insufficient_material():
+            return True
+        
+        return False
+    
+    def _has_insufficient_material(self) -> bool:
+        """Return True if neither side has enough material to deliver checkmate."""
+        
+        # Possible material for white and black
+        white_pieces = []
+        black_pieces = []
+        
+        for row in range(8):
+            for col in range(8):
+                piece = self.board.get_piece(row, col)
+                if piece:
+                    if piece.color == "white":
+                        white_pieces.append(piece.kind)
+                    else:
+                        black_pieces.append(piece.kind)
+        
+        # Can checkmate if either side has: queen, rook, or 2+ minor pieces
+        white_can_mate = (
+            "queen" in white_pieces 
+            or "rook" in white_pieces 
+            or white_pieces.count("bishop") + white_pieces.count("knight") >= 2
+        )
+        
+        black_can_mate = (
+            "queen" in black_pieces 
+            or "rook" in black_pieces 
+            or black_pieces.count("bishop") + black_pieces.count("knight") >= 2
+        )
+        
+        # Draw only if BOTH sides cannot deliver mate
+        return not (white_can_mate or black_can_mate)

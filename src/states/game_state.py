@@ -39,18 +39,17 @@ class GameState(State):
         print("exitting Game State")
 
     def handle_event(self, event):
-        # If there is a pending promotion, only handle clicks for the promotion modal
-        if self.logic.pending_promotion is not None:
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = event.pos
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            x, y = event.pos
+
+            # If there is a pending promotion, only handle clicks for the promotion modal
+            if self.logic.pending_promotion is not None:
                 choice = self.promotion_modal.handle_click(x, y)
+
                 if choice is not None:
                     # choice is one of: "queen", "rook", "bishop", "knight"
                     self.logic.promote_pawn(choice)
-            return
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            x, y = event.pos
+                return
             
             # Check if button was clicked
             if self.button_exit.is_clicked((x, y)):

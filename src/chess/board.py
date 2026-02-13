@@ -66,3 +66,16 @@ class Board:
 
     def clone(self):
         return copy.deepcopy(self)
+
+    def get_position_hash(self) -> str:
+        """Return a hash representing the current board position for repetition detection."""
+        hash_str = ""
+        for row in range(8):
+            for col in range(8):
+                piece = self.board[row][col]
+                if piece:
+                    # Format: color(1 char) + kind(1 char)
+                    hash_str += f"{piece.color[0]}{piece.kind[0]}"
+                else:
+                    hash_str += "-"
+        return hash_str
