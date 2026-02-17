@@ -9,13 +9,18 @@ class PieceRenderer:
         self.img = None
         self.image_cache = ImageCache()
 
-    def draw(self, screen: pygame.Surface, piece: Piece):
+    def draw(self, screen: pygame.Surface, piece: Piece, flipped: bool = False):
         row, col = piece.position
+
+        # Map board coordinates to screen coordinates depending on orientation
+        screen_row = 7 - row if flipped else row
+        screen_col = 7 - col if flipped else col
+
         center = (
-            col * settings.TILESIZE
+            screen_col * settings.TILESIZE
             + settings.TILESIZE // 2
             + settings.START_GRID_BOARD_POS[0],
-            row * settings.TILESIZE
+            screen_row * settings.TILESIZE
             + settings.TILESIZE // 2
             + settings.START_GRID_BOARD_POS[1],
         )

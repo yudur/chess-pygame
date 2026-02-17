@@ -2,7 +2,7 @@ import pygame
 
 from src.core.state_manager import StateManager
 
-from src.states.game_state import GameState
+from src.states.home_state import HomeState
 from src.utils import settings
 
 
@@ -16,7 +16,7 @@ class GameApp:
         self.running = True
 
         self.state_manager = StateManager()
-        self.state_manager.change_state(GameState(self.state_manager))
+        self.state_manager.change_state(HomeState(self.state_manager))
 
     def run(self):
         while self.running:

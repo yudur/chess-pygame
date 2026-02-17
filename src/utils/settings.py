@@ -31,6 +31,9 @@ PIECES_COLOR = {
     "black": "black\\b_",
 }
 
+STOCKFISH_EXECUTOR = "stockfish-windows-x86-64.exe"
+STOCKFISH_PATH = ASSETS_PATH / "engines" / "stockfish" / STOCKFISH_EXECUTOR
+
 
 def initialize_display_settings():
     """Initialize screen constants ONCE after pygame.init()."""

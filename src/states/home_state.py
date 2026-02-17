@@ -11,62 +11,81 @@ class HomeState(State):
         self.manager = manager
 
         self.button_start_game_against_computer = ButtonRenderer(
-            pos=(settings.START_GRID_BOARD_POS[0], settings.START_GRID_BOARD_POS[1] + 20),
+            pos=(
+                settings.START_GRID_BOARD_POS[0],
+                settings.START_GRID_BOARD_POS[1] + 20,
+            ),
             size=(settings.TILESIZE * 4, settings.TILESIZE),
-            text="Player vs Computer"
+            text="Player vs Computer",
         )
         self.button_start_local_game = ButtonRenderer(
-            pos=(settings.START_GRID_BOARD_POS[0], settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 1 + 20),
+            pos=(
+                settings.START_GRID_BOARD_POS[0],
+                settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 1 + 20,
+            ),
             size=(settings.TILESIZE * 4, settings.TILESIZE),
-            text="Player vs Player"
+            text="Player vs Player",
         )
         self.button_start_online_game = ButtonRenderer(
-            pos=(settings.START_GRID_BOARD_POS[0], settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 2 + 20),
+            pos=(
+                settings.START_GRID_BOARD_POS[0],
+                settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 2 + 20,
+            ),
             size=(settings.TILESIZE * 4, settings.TILESIZE),
-            text="Play Online"
+            text="Play Online",
         )
         self.button_exit = ButtonRenderer(
-            pos=(settings.START_GRID_BOARD_POS[0], settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 3 + 20),
+            pos=(
+                settings.START_GRID_BOARD_POS[0],
+                settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 3 + 20,
+            ),
             size=(settings.TILESIZE * 4, settings.TILESIZE),
-            text="Exit"
+            text="Exit",
         )
 
     def enter(self):
-        print("Entering Home State")
+        pass
 
     def exit(self):
-        print("Exiting Home State")
+        pass
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
-            
+
             if self.button_start_game_against_computer.is_clicked((x, y)):
-                print("Start game against computer")
-                # Here you would transition to the GameState with a flag for vs computer
+                # Here, in the future, you can create a specific vs AI session
+                from src.states.select_color_vs_ai_state import SelectColorVsAiState
+
+                self.manager.change_state(SelectColorVsAiState(self.manager))
                 return
-            
+
             if self.button_start_local_game.is_clicked((x, y)):
-                print("Start local game")
+                # Transition to GameState with a local session (Player vs Player)
                 from src.states.game_state import GameState
-                # Here you would transition to the GameState for local play
-                self.manager.change_state(GameState(self.manager))  # For now just go to GameState without vs computer flag
-            
+                from src.core.chess_session import LocalChessSession
+
+                self.manager.change_state(
+                    GameState(self.manager, LocalChessSession(None))
+                )
+
             if self.button_start_online_game.is_clicked((x, y)):
                 print("Start online game")
                 # Here you would transition to an OnlineLobbyState or similar
                 return
-            
+
             if self.button_exit.is_clicked((x, y)):
                 print("Exit game")
                 pygame.quit()
                 exit()
 
     def update(self, dt):
-        self.button_start_game_against_computer.update(pygame.mouse.get_pos())
-        self.button_start_local_game.update(pygame.mouse.get_pos())
-        self.button_start_online_game.update(pygame.mouse.get_pos())
-        self.button_exit.update(pygame.mouse.get_pos())
+        mouse_pos = pygame.mouse.get_pos()
+
+        self.button_start_game_against_computer.update(mouse_pos)
+        self.button_start_local_game.update(mouse_pos)
+        self.button_start_online_game.update(mouse_pos)
+        self.button_exit.update(mouse_pos)
 
     def render(self, screen):
         self.button_start_game_against_computer.draw(screen)
