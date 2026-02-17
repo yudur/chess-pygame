@@ -1,6 +1,8 @@
 import pygame
 from src.core.state import State
 from src.ui.button_renderer import ButtonRenderer
+from src.ui.num_input_renderer import NumericInputRenderer
+
 from src.utils import settings
 
 from src.core.chess_session import AiChessSession
@@ -28,10 +30,21 @@ class SelectColorVsAiState(State):
             text="Playing with Black",
         )
 
-        self.back_to_home = ButtonRenderer(
+        self.input_elo = NumericInputRenderer(
             pos=(
                 settings.START_GRID_BOARD_POS[0],
                 settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 2 + 20,
+            ),
+            size=(settings.TILESIZE * 4, settings.TILESIZE),
+            placeholder="AI Elo (default 1320 - 3000)",
+            min_value=1320,
+            max_value=3000,
+        )
+
+        self.back_to_home = ButtonRenderer(
+            pos=(
+                settings.START_GRID_BOARD_POS[0],
+                settings.START_GRID_BOARD_POS[1] + settings.TILESIZE * 3 + 20,
             ),
             size=(settings.TILESIZE * 4, settings.TILESIZE),
             text="Back to Home",
@@ -47,18 +60,30 @@ class SelectColorVsAiState(State):
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
 
+            if self.input_elo.is_clicked((x, y)):
+                return
+
             if self.button_playing_with_white.is_clicked((x, y)):
                 self.manager.change_state(
-                    GameState(self.manager, AiChessSession("white"))
+                    GameState(
+                        self.manager,
+                        AiChessSession("white", self.input_elo.get_value()),
+                    )
                 )
             elif self.button_playing_with_black.is_clicked((x, y)):
                 self.manager.change_state(
-                    GameState(self.manager, AiChessSession("black"))
+                    GameState(
+                        self.manager,
+                        AiChessSession("black", self.input_elo.get_value()),
+                    )
                 )
             elif self.back_to_home.is_clicked((x, y)):
                 from src.states.home_state import HomeState
 
                 self.manager.change_state(HomeState(self.manager))
+
+        if event.type == pygame.KEYDOWN:
+            self.input_elo.handle_event(event)
 
     def update(self, dt):
         mouse_pos = pygame.mouse.get_pos()
@@ -71,3 +96,4 @@ class SelectColorVsAiState(State):
         self.button_playing_with_white.draw(screen)
         self.button_playing_with_black.draw(screen)
         self.back_to_home.draw(screen)
+        self.input_elo.render(screen)

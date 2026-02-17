@@ -40,7 +40,7 @@ class OnlineChessSession(ChessSession):
 
 
 class AiChessSession(ChessSession):
-    def __init__(self, local_color):
+    def __init__(self, local_color, elo=1900):
         from src.chess.ai import AiEngine
 
         super().__init__(local_color)
@@ -48,7 +48,7 @@ class AiChessSession(ChessSession):
         # Human plays as local_color; AI plays as the opposite color
         self.human_color = local_color
         self.ai_color = "black" if local_color == "white" else "white"
-        self.ai = AiEngine(color=self.ai_color, elo=1900)
+        self.ai = AiEngine(color=self.ai_color, elo=elo)
 
     def handle_board_click(self, row, col):
         """Handle human input only when it's the human's turn."""
