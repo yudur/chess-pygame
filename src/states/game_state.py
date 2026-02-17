@@ -33,13 +33,27 @@ class GameState(State):
         )
         self.game_over_notification = GameOverNotificationRenderer(None)
 
+        self.sounds = {
+            "entry": pygame.mixer.Sound(str(settings.SOUNDS_PATH / "notify.mp3")),
+            "move": pygame.mixer.Sound(str(settings.SOUNDS_PATH / "move-self.mp3")),
+            "capture": pygame.mixer.Sound(str(settings.SOUNDS_PATH / "capture.mp3")),
+            "check": pygame.mixer.Sound(str(settings.SOUNDS_PATH / "move-check.mp3")),
+            "checkmate": pygame.mixer.Sound(
+                str(settings.SOUNDS_PATH / "checkmate.mp3")
+            ),
+            "castling": pygame.mixer.Sound(str(settings.SOUNDS_PATH / "castle.mp3")),
+        }
+
         self.dragging = False
         self.drag_piece = None
         self.drag_origin = None  # (row, col)
         self.mouse_pos = (0, 0)
+        # Track last move and game-over state to trigger sounds once
+        self._last_move_seen = self.logic.last_move
+        self._was_game_over = self.logic.game_over
 
     def enter(self):
-        pass
+        self.sounds["entry"].play()
 
     def exit(self):
         pass
@@ -138,7 +152,14 @@ class GameState(State):
                 self.drag_origin = None
 
     def update(self, dt):
+        # Update exit button hover state
         self.button_exit.update(pygame.mouse.get_pos())
+
+        # Keep previous values to detect changes after the session updates
+        prev_last_move = self._last_move_seen
+        prev_game_over = self._was_game_over
+
+        # Let the session update itself (AI move, online opponent move, etc.)
         self.session.update(dt)
 
         # In online games, if the connection is closed (e.g. opponent left),
@@ -148,6 +169,38 @@ class GameState(State):
                 from src.states.home_state import HomeState
 
                 self.manager.change_state(HomeState(self.manager))
+                return
+
+        # Check if a new move happened since the last frame
+        new_last_move = self.logic.last_move
+        if new_last_move is not None and new_last_move is not prev_last_move:
+            # Choose appropriate sound based on the last move characteristics
+            if (
+                self.logic.game_over
+                and self.logic.result
+                and self.logic.result[0] == "checkmate"
+            ):
+                # Checkmate sound will be handled below
+                pass
+            elif getattr(self.logic, "last_move_was_castling", False):
+                self.sounds["castling"].play()
+            elif getattr(self.logic, "last_move_was_capture", False):
+                self.sounds["capture"].play()
+            else:
+                # If the side to move is in check after this move, play check sound
+                if hasattr(self.logic, "is_in_check") and self.logic.is_in_check():
+                    self.sounds["check"].play()
+                else:
+                    self.sounds["move"].play()
+
+            self._last_move_seen = new_last_move
+
+        # Play game over sound once, when the game transitions to over
+        if self.logic.game_over and not prev_game_over:
+            if self.logic.result and self.logic.result[0] == "checkmate":
+                self.sounds["checkmate"].play()
+
+        self._was_game_over = self.logic.game_over
 
     def render(self, screen):
         self.button_exit.draw(screen)

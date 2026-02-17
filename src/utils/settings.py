@@ -25,6 +25,7 @@ BOARD_DARK_COLOR = (181, 136, 99)
 
 ASSETS_PATH = Path(__file__).parent.parent.parent / "assets"
 PIECES_PATH = ASSETS_PATH / "images" / "pieces"
+SOUNDS_PATH = ASSETS_PATH / "sounds"
 
 PIECES_COLOR = {
     "white": "white\\w_",

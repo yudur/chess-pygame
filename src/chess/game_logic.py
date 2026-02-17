@@ -13,7 +13,11 @@ class GameLogic:
         self.current_turn = "white"
         self.selected_piece = None
         self.valid_moves = []
-        self.last_move = None  # (piece, from_row, from_col, to_row, to_col)
+        # Last move made on the board: (piece, from_row, from_col, to_row, to_col)
+        self.last_move = None
+        # Extra flags describing the last move (for UI/sound feedback)
+        self.last_move_was_capture = False
+        self.last_move_was_castling = False
         self.game_over = False
         self.result: tuple[str, str] | None = None  # (reason, winner)
         # Promotion state: when not None, the game waits for the UI to choose a piece
@@ -74,13 +78,18 @@ class GameLogic:
         from_row, from_col = piece.position
         target = self.board.get_piece(row, col)
 
+        # Reset last-move flags and detect capture
+        was_capture = False
+
         # en passant: indirect capture
         if isinstance(piece, Pawn) and col != from_col and target is None:
             captured_row = from_row
             self.board.remove_piece(captured_row, col)
+            was_capture = True
 
         if target:
             self.board.remove_piece(row, col)
+            was_capture = True
 
         self.board.remove_piece(from_row, from_col)
         self.board.place_piece(piece, row, col)
@@ -92,7 +101,9 @@ class GameLogic:
                 self.pending_promotion = (piece.color, row, col)
 
         # Castling: if king moved two files horizontally, move the rook as well
-        if piece.kind == "king" and abs(col - from_col) == 2:
+        was_castling = piece.kind == "king" and abs(col - from_col) == 2
+
+        if was_castling:
             rook_row = row
             if col > from_col:  # king-side castling
                 rook_from_col, rook_to_col = 7, 5
@@ -107,8 +118,10 @@ class GameLogic:
 
         # Mark piece as having moved (important for king/rook castling checks)
         piece.has_moved = True
-
+        # Store last move and its characteristics
         self.last_move = (piece, from_row, from_col, row, col)
+        self.last_move_was_capture = was_capture
+        self.last_move_was_castling = was_castling
         
         # Update halfmove clock for fifty-move rule
         # Reset to 0 on pawn move or capture, otherwise increment
@@ -218,6 +231,16 @@ class GameLogic:
 
         enemy = "black" if color == "white" else "white"
         return self._is_square_attacked(board, king_pos[0], king_pos[1], enemy)
+
+    def is_in_check(self, color: str | None = None) -> bool:
+        """Public helper: is `color` currently in check on the real board?
+
+        If color is None, uses the side to move (current_turn).
+        """
+
+        if color is None:
+            color = self.current_turn
+        return self._king_in_check_after(self.board, color)
 
     def _get_legal_moves_for_moves(self, piece, candidate_moves):
         """Filter candidate_moves, removing moves that leave the moving side's king in check."""
