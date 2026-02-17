@@ -70,8 +70,11 @@ class HomeState(State):
                 )
 
             if self.button_start_online_game.is_clicked((x, y)):
-                print("Start online game")
-                # Here you would transition to an OnlineLobbyState or similar
+                from src.states.waiting_for_opponent_state import (
+                    WaitingForOpponentState,
+                )
+
+                self.manager.change_state(WaitingForOpponentState(self.manager))
                 return
 
             if self.button_exit.is_clicked((x, y)):

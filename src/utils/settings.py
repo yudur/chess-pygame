@@ -34,6 +34,8 @@ PIECES_COLOR = {
 STOCKFISH_EXECUTOR = "stockfish-windows-x86-64.exe"
 STOCKFISH_PATH = ASSETS_PATH / "engines" / "stockfish" / STOCKFISH_EXECUTOR
 
+URI_SERVER_ONLINE_GAME = "ws://localhost:8000/ws"
+
 
 def initialize_display_settings():
     """Initialize screen constants ONCE after pygame.init()."""

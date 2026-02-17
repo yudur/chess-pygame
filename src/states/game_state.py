@@ -1,6 +1,6 @@
 import pygame
 from src.core.state import State
-from src.core.chess_session import ChessSession
+from src.core.chess_session import ChessSession, OnlineChessSession
 
 from src.ui.board_renderer import BoardRenderer
 from src.ui.piece_renderer import PieceRenderer
@@ -51,18 +51,29 @@ class GameState(State):
             # Determine if board should be rendered from Black's perspective
             flipped = getattr(self.session, "local_color", None) == "black"
 
-            # If there is a pending promotion, only handle clicks for the promotion modal
+            # If there is a pending promotion, only the promoting side
+            # should interact with the modal (in online mode).
             if self.logic.pending_promotion is not None:
-                choice = self.promotion_modal.handle_click(x, y)
-
-                if choice is not None:
-                    # choice is one of: "queen", "rook", "bishop", "knight"
-                    self.logic.promote_pawn(choice)
+                if isinstance(self.session, OnlineChessSession):
+                    color, _, _ = self.logic.pending_promotion
+                    # Only the owner of the pawn can choose the promotion piece
+                    if self.session.local_color == color:
+                        choice = self.promotion_modal.handle_click(x, y)
+                        if choice is not None:
+                            self.session.promote_pawn(choice)
+                else:
+                    choice = self.promotion_modal.handle_click(x, y)
+                    if choice is not None:
+                        self.session.promote_pawn(choice)
                 return
 
             # Check if button was clicked
             if self.button_exit.is_clicked((x, y)):
                 from src.states.home_state import HomeState
+
+                # If this is an online session, close the network connection
+                if isinstance(self.session, OnlineChessSession):
+                    self.session.close()
 
                 self.manager.change_state(
                     HomeState(self.manager)
@@ -130,6 +141,14 @@ class GameState(State):
         self.button_exit.update(pygame.mouse.get_pos())
         self.session.update(dt)
 
+        # In online games, if the connection is closed (e.g. opponent left),
+        # send the player back to the home menu.
+        if isinstance(self.session, OnlineChessSession):
+            if self.session.connection_status == "closed":
+                from src.states.home_state import HomeState
+
+                self.manager.change_state(HomeState(self.manager))
+
     def render(self, screen):
         self.button_exit.draw(screen)
 
@@ -158,11 +177,24 @@ class GameState(State):
 
         # Draw promotion modal if a pawn is waiting to be promoted
         if self.logic.pending_promotion is not None:
-            # Ensure modal has the correct screen and color
-            self.promotion_modal.screen = screen
             color, _, _ = self.logic.pending_promotion
-            self.promotion_modal.color = color
-            self.promotion_modal.render()
+
+            # In online mode, the modal only appears for the player
+            # who is promoting the pawn.
+            if isinstance(self.session, OnlineChessSession):
+                if self.session.local_color != color:
+                    # Opponent: do not show the modal; just wait for
+                    # the promotion message coming from the network.
+                    pass
+                else:
+                    self.promotion_modal.screen = screen
+                    self.promotion_modal.color = color
+                    self.promotion_modal.render()
+            else:
+                # Local / vs AI: always show the modal
+                self.promotion_modal.screen = screen
+                self.promotion_modal.color = color
+                self.promotion_modal.render()
 
         if self.logic.game_over:
             self.game_over_notification.winner_color = self.logic.result[1]

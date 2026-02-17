@@ -6,11 +6,15 @@ name = "pypi"
 [packages]
 pygame-ce = "*"
 stockfish = "*"
+fastapi = "*"
+websocket-client = "*"
+uvicorn = {extras = ["standard"], version = "*"}
 
 [dev-packages]
 
 [scripts]
 start = "python -m src.main"
+server = "uvicorn src.server.main:app --reload --host 0.0.0.0 --port 8000"
 
 [requires]
 python_version = "3.13"
