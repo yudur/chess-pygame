@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import copy
 import json
 import threading
 from queue import Queue
@@ -270,7 +271,17 @@ class AiChessSession(ChessSession):
         # Human plays as local_color; AI plays as the opposite color
         self.human_color = local_color
         self.ai_color = "black" if local_color == "white" else "white"
+
         self.ai = AiEngine(color=self.ai_color, elo=elo)
+
+        self.queue = Queue()
+        self._thread: threading.Thread | None = None
+        self._ai_thinking = False
+
+    def _ai_worker(self) -> None:
+        board_copy = copy.deepcopy(self.logic.board)
+        move = self.ai.get_move(board_copy, self.ai_color)
+        self.queue.put(move)
 
     def handle_board_click(self, row, col):
         """Handle human input only when it's the human's turn."""
@@ -294,21 +305,26 @@ class AiChessSession(ChessSession):
         if self.logic.game_over:
             return
 
-        if self.logic.current_turn != self.ai_color:
-            return
+        if self.logic.current_turn == self.ai_color and not self._ai_thinking:
+            self._ai_thinking = True
+            self._thread = threading.Thread(target=self._ai_worker, daemon=True)
+            self._thread.start()
 
-        move = self.ai.get_move(self.logic.board, self.ai_color)
-        if move is None:
-            return
+        if self._ai_thinking and not self.queue.empty():
+            move = self.queue.get()
+            self._ai_thinking = False
 
-        (from_row, from_col), (to_row, to_col) = move
+            if move is None:
+                return
 
-        # Apply the move using the existing selection/move logic
-        self.logic.select_square(from_row, from_col)
-        self.logic.select_square(to_row, to_col)
+            (from_row, from_col), (to_row, to_col) = move
 
-        # If AI's move created a pending promotion, auto-promote to queen
-        if self.logic.pending_promotion is not None:
-            self.logic.promote_pawn(
-                "queen"
-            )  # TODO: adapt to AI to do your own promotion
+            # Apply the move using the existing selection/move logic
+            self.logic.select_square(from_row, from_col)
+            self.logic.select_square(to_row, to_col)
+
+            # If AI's move created a pending promotion, auto-promote to queen
+            if self.logic.pending_promotion is not None:
+                self.logic.promote_pawn(
+                    "queen"
+                )  # TODO: adapt to AI to do your own promotion
